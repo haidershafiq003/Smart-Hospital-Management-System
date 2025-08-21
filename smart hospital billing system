@@ -1,0 +1,173 @@
+using System;
+
+// Insurance Interface
+interface IInsurable
+{
+    bool IsInsuranceValid();
+}
+
+// Base Class: Patient
+class Patient
+{
+    private string name;
+    private int id;
+    private int age;
+    private string category;
+
+    public string Name { get { return name; } set { name = value; } }
+    public int ID { get { return id; } set { id = value; } }
+    public int Age
+    {
+        get { return age; }
+        set
+        {
+            if (value <= 0) throw new Exception("Age must be greater than zero.");
+            age = value;
+        }
+    }
+    public string Category { get { return category; } set { category = value; } }
+
+    public virtual double CalculateDiscount(double totalBill)
+    {
+        return totalBill * 0.05; // 5% discount for General
+    }
+}
+
+// Derived Class: VIPPatient
+class VIPPatient : Patient
+{
+    public override double CalculateDiscount(double totalBill)
+    {
+        return totalBill * 0.20; // 20% discount for VIP
+    }
+}
+
+// Billing Class with Composition and Interface
+class Billing : IInsurable
+{
+    public Patient patient;
+    public double TotalBill { get; set; }
+    public double InsuranceCoveredAmount { get; set; }
+
+    public Billing(Patient p)
+    {
+        patient = p;
+    }
+
+    public double FinalBill()
+    {
+        try
+        {
+            double discount = patient.CalculateDiscount(TotalBill);
+            double finalBill = TotalBill - discount - InsuranceCoveredAmount;
+            if (finalBill < 0) finalBill = 0;
+            return finalBill;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error: " + ex.Message);
+            return 0;
+        }
+    }
+
+    public bool IsInsuranceValid()
+    {
+        return InsuranceCoveredAmount > 0;
+    }
+
+    public static Billing operator +(Billing b1, Billing b2)
+    {
+        Billing newBill = new Billing(b1.patient);
+        newBill.TotalBill = b1.TotalBill + b2.TotalBill;
+        newBill.InsuranceCoveredAmount = b1.InsuranceCoveredAmount + b2.InsuranceCoveredAmount;
+        return newBill;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("Welcome to Smart Hospital Billing System");
+        Patient patient = null;
+        Billing billing = null;
+
+        while (true)
+        {
+            Console.WriteLine("\n1. Add Patient Info\n2. Enter Billing Details\n3. Display Bill Summary\n4. Exit");
+            Console.Write("Enter your choice: ");
+            int choice = int.Parse(Console.ReadLine());
+
+            try
+            {
+                if (choice == 1)
+                {
+                    Console.Write("Enter Name: ");
+                    string name = Console.ReadLine();
+                    Console.Write("Enter ID: ");
+                    int id = int.Parse(Console.ReadLine());
+                    Console.Write("Enter Age: ");
+                    int age = int.Parse(Console.ReadLine());
+                    Console.Write("Enter Category (General/VIP): ");
+                    string category = Console.ReadLine();
+
+                    if (category.ToLower() == "vip")
+                        patient = new VIPPatient();
+                    else
+                        patient = new Patient();
+
+                    patient.Name = name;
+                    patient.ID = id;
+                    patient.Age = age;
+                    patient.Category = category;
+
+                    billing = new Billing(patient);
+                }
+                else if (choice == 2)
+                {
+                    if (patient == null)
+                    {
+                        Console.WriteLine("Please add patient info first.");
+                        continue;
+                    }
+
+                    Console.Write("Enter Total Bill: ");
+                    billing.TotalBill = double.Parse(Console.ReadLine());
+                    Console.Write("Enter Insurance Covered Amount: ");
+                    billing.InsuranceCoveredAmount = double.Parse(Console.ReadLine());
+                }
+                else if (choice == 3)
+                {
+                    if (billing == null)
+                    {
+                        Console.WriteLine("No billing information found.");
+                        continue;
+                    }
+
+                    double discount = patient.CalculateDiscount(billing.TotalBill);
+                    double finalBill = billing.FinalBill();
+
+                    Console.WriteLine("\nPatient Name: " + patient.Name);
+                    Console.WriteLine("Category: " + patient.Category);
+                    Console.WriteLine("Original Bill: " + billing.TotalBill);
+                    Console.WriteLine("Insurance: " + billing.InsuranceCoveredAmount);
+                    Console.WriteLine("Discount Applied: " + discount);
+                    Console.WriteLine("Final Bill: " + finalBill);
+                }
+                else if (choice == 4)
+                {
+                    Console.WriteLine("Exiting...");
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Invalid Choice.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Input Error: " + ex.Message);
+            }
+        }
+    }
+}
